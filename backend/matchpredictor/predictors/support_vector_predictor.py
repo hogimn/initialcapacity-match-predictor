@@ -1,42 +1,40 @@
-from typing import List, Tuple, Optional, cast
+from typing import List, Tuple, Optional
 
 import numpy as np
 from numpy import float64
 from numpy.typing import NDArray
-from sklearn.linear_model import LogisticRegression  # type: ignore
 from sklearn.preprocessing import OneHotEncoder  # type: ignore
+from sklearn.svm import SVC  # type: ignore
 
 from matchpredictor.matchresults.result import Fixture, Outcome, Result, Team
 from matchpredictor.predictors.predictor import Predictor, Prediction
 
 
-class LinearRegressionPredictor(Predictor):
+class SupportVectorPredictor(Predictor):
     """
-    A predictor that uses linear regression to make predictions based on team encodings.
-
-    Inherits from Predictor.
+    A predictor that uses a Support Vector Machine (SVM) model for prediction based on encoded team names.
     """
 
-    def __init__(self, model: LogisticRegression, team_encoding: OneHotEncoder) -> None:
+    def __init__(self, model: SVC, team_encoding: OneHotEncoder) -> None:
         """
-        Initializes the LinearRegressionPredictor with a logistic regression model and a team encoding.
+        Initializes the SupportVectorPredictor.
 
         Args:
-            model (LogisticRegression): The logistic regression model used for prediction.
-            team_encoding (OneHotEncoder): The team encoding used to transform team names.
+            model (SVC): The Support Vector Machine model for prediction.
+            team_encoding (OneHotEncoder): The OneHotEncoder used to encode team names.
         """
         self.model = model
         self.team_encoding = team_encoding
 
     def predict(self, fixture: Fixture) -> Prediction:
         """
-        Makes a prediction for the given fixture using linear regression and team encodings.
+        Predicts the outcome of a fixture.
 
         Args:
-            fixture (Fixture): The fixture for which the prediction is made.
+            fixture (Fixture): The fixture to predict.
 
         Returns:
-            Prediction: The prediction for the fixture.
+            Prediction: The predicted outcome.
         """
         # Encode the home team name
         encoded_home_name = self.__encode_team(fixture.home_team)
@@ -67,13 +65,13 @@ class LinearRegressionPredictor(Predictor):
 
     def __encode_team(self, team: Team) -> Optional[NDArray[float64]]:
         """
-        Encodes the team name using the team encoding.
+        Encodes a team name using the team encoding.
 
         Args:
-            team (Team): The team to encode.
+            team (Team): The team whose name needs to be encoded.
 
         Returns:
-            Optional[ndarray]: The encoded team name, or None if encoding fails.
+            Optional[NDArray[float64]]: The encoded team name, or None if encoding fails.
         """
         try:
             # Transform the team name using the encoding
@@ -84,16 +82,15 @@ class LinearRegressionPredictor(Predictor):
             return None
 
 
-def build_model(results: List[Result]) -> Tuple[LogisticRegression, OneHotEncoder]:
+def build_model(results: List[Result]) -> Tuple[SVC, OneHotEncoder]:
     """
-    Builds a logistic regression model for predicting match outcomes based on historical results.
+    Build a support vector model and a one-hot encoder based on the provided results.
 
     Args:
-        results (List[Result]): A list of historical match results used for training the model.
+        results (List[Result]): The list of results.
 
     Returns:
-        Tuple[LogisticRegression, OneHotEncoder]: A tuple containing the trained logistic regression model
-            and the one-hot encoder used for team name encoding.
+        Tuple[SVC, OneHotEncoder]: The trained support vector model and one-hot encoder.
     """
     # Extract home team names, away team names, home goals, and away goals from the results
     home_names = np.array([r.fixture.home_team.name for r in results])
@@ -116,27 +113,27 @@ def build_model(results: List[Result]) -> Tuple[LogisticRegression, OneHotEncode
     # Assign a positive value (1) for home team wins, a negative value (-1) for away team wins, and 0 for draws.
     y = np.sign(home_goals - away_goals)
 
-    # Create a logistic regression model
-    model = LogisticRegression(penalty="l2", fit_intercept=False, multi_class="ovr", C=1)
-    # Fit the logistic regression model to the feature matrix (x) and target variable (y)
+    # Create a support vector model
+    model = SVC(kernel='linear', random_state=42)
+    # Fit the support vector model to the feature matrix (x) and target variable (y)
     model.fit(x, y)
 
-    # Return the trained logistic regression model and the one-hot encoder
+    # Return the trained support vector model and the one-hot encoder
     return model, team_encoding
 
 
-def train_regression_predictor(results: List[Result]) -> Predictor:
+def train_random_support_vector_predictor(results: List[Result]) -> Predictor:
     """
-    Trains a logistic regression model using historical match results and returns a LinearRegressionPredictor.
+    Train a predictor based on the provided results using a support vector model.
 
     Args:
-        results (List[Result]): A list of historical match results used for training the model.
+        results (List[Result]): The list of results.
 
     Returns:
-        Predictor: A LinearRegressionPredictor object with the trained logistic regression model.
+        Predictor: The trained support vector predictor.
     """
-    # Build the logistic regression model and team encoder
+    # Build the support vector model and team encoder
     model, team_encoding = build_model(results)
 
-    # Create and return a LinearRegressionPredictor with the trained model and team encoder
-    return LinearRegressionPredictor(model, team_encoding)
+    # Create and return a SupportVectorPredictor with the trained model and team encoder
+    return SupportVectorPredictor(model, team_encoding)

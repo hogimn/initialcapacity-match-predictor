@@ -36,4 +36,6 @@ class TestModelsApi(TestCase):
             {"name": "Full simulator (fast)", "predicts_in_progress": True},
             {"name": "Full simulator", "predicts_in_progress": True},
             # {"name": "Linear regression", "predicts_in_progress": False},
+            {"name": "Alphabet simulator", "predicts_in_progress": False},
+            {"name": "Support vector simulator", "predicts_in_progress": False},
         ]})
